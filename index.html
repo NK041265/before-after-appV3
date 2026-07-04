@@ -137,9 +137,13 @@
             // 1. Draw immediately
             drawCanvas();
 
-            // 2. Explicitly wait for fonts (Modern Browsers)
+            // 2. Explicitly wait for ALL font variations used in Canvas (Crucial for Safari/iPad)
             if (document.fonts && document.fonts.load) {
-                document.fonts.load('bold 36px "Sarabun"').then(function() {
+                Promise.all([
+                    document.fonts.load('bold 36px "Sarabun"'),
+                    document.fonts.load('bold 24px "Sarabun"'),
+                    document.fonts.load('24px "Sarabun"')
+                ]).then(function() {
                     drawCanvas();
                 }).catch(function(e) {
                     console.log("Font load API error:", e);
@@ -151,8 +155,6 @@
             }
 
             // 3. Bulletproof Fallback for older Safari/iOS:
-            // Redraw every 300ms for the first 3 seconds to ensure 
-            // the font swap is caught even if the API fails to fire.
             let redrawCount = 0;
             let interval = setInterval(function() {
                 drawCanvas();
@@ -227,12 +229,14 @@
             ctx.textBaseline = 'middle';
             ctx.fillText(title, 30, headerHeight / 2);
 
-            // Draw Description Text
+            // Draw Description Text (Bypass Safari center bug with manual offset)
             ctx.fillStyle = '#555555'; 
             ctx.font = '24px "Sarabun", sans-serif';
-            ctx.textAlign = 'center';
+            ctx.textAlign = 'left'; // Strictly use left align
             ctx.textBaseline = 'middle';
-            ctx.fillText(desc, canvas.width / 2, canvas.height - (footerHeight / 2));
+            let descWidth = ctx.measureText(desc).width;
+            let descX = (canvas.width / 2) - (descWidth / 2);
+            ctx.fillText(desc, descX, canvas.height - (footerHeight / 2));
         }
 
         function drawTag(text, sectionX, sectionY) {
@@ -249,10 +253,12 @@
             ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
             ctx.fillRect(sectionX, sectionY, boxWidth, boxHeight);
             
+            // Bypass Safari center bug with manual offset inside the box
             ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
+            ctx.textAlign = 'left'; // Strictly use left align
             ctx.textBaseline = 'middle';
-            ctx.fillText(text, sectionX + (boxWidth / 2), sectionY + (boxHeight / 2) + 2);
+            let textX = sectionX + (boxWidth / 2) - (textWidth / 2);
+            ctx.fillText(text, textX, sectionY + (boxHeight / 2) + 2);
             
             ctx.restore();
         }
